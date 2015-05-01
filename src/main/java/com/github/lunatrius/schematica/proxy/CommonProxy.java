@@ -23,10 +23,13 @@ import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import net.minecraft.block.Block;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 
 import java.io.File;
 
@@ -77,6 +80,19 @@ public abstract class CommonProxy {
         final int localMaxX = maxX > ((chunkX << 4) + 15) ? 15 : (maxX & 15);
         final int localMinZ = minZ < (chunkZ << 4) ? 0 : (minZ & 15);
         final int localMaxZ = maxZ > ((chunkZ << 4) + 15) ? 15 : (maxZ & 15);
+
+        Chunk chunk = world.getChunkFromChunkCoords(chunkX, chunkZ);
+
+        for (int i = 0; i < chunk.entityLists.length; i++) {
+            for (Object entityObj : chunk.entityLists[i]) {
+                Entity entity = (Entity)entityObj;
+                int x = MathHelper.truncateDoubleToInt(entity.posX);
+                int y = MathHelper.truncateDoubleToInt(entity.posY);
+                int z = MathHelper.truncateDoubleToInt(entity.posZ);
+
+                schematic.addEntity(x - minX, y - minY, z - minZ, entity);
+            }
+        }
 
         for (int chunkLocalX = localMinX; chunkLocalX <= localMaxX; chunkLocalX++) {
             for (int chunkLocalZ = localMinZ; chunkLocalZ <= localMaxZ; chunkLocalZ++) {

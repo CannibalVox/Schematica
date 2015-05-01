@@ -4,9 +4,11 @@ import com.github.lunatrius.schematica.api.ISchematic;
 import cpw.mods.fml.common.registry.FMLControlledNamespacedRegistry;
 import cpw.mods.fml.common.registry.GameData;
 import net.minecraft.block.Block;
+import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.MathHelper;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -20,6 +22,7 @@ public class Schematic implements ISchematic {
     private final short[][][] blocks;
     private final byte[][][] metadata;
     private final List<TileEntity> tileEntities = new ArrayList<TileEntity>();
+    private final List<Entity> entities = new ArrayList<Entity>();
     private final int width;
     private final int height;
     private final int length;
@@ -98,6 +101,31 @@ public class Schematic implements ISchematic {
         while (iterator.hasNext()) {
             final TileEntity tileEntity = iterator.next();
             if (tileEntity.xCoord == x && tileEntity.yCoord == y && tileEntity.zCoord == z) {
+                iterator.remove();
+            }
+        }
+    }
+
+    @Override
+    public List<Entity> getEntities() { return this.entities; }
+
+    @Override
+    public void addEntity(final int x, final int y, final int z, final Entity entity) {
+        if (!isValid(x,y,z))
+            return;
+
+        removeEntity(entity);
+
+        this.entities.add(entity);
+    }
+
+    @Override
+    public void removeEntity(final Entity entity) {
+        final Iterator<Entity> iterator = this.entities.iterator();
+
+        while (iterator.hasNext()) {
+            final Entity iterEntity = iterator.next();
+            if (iterEntity.getUniqueID().equals(entity.getUniqueID())) {
                 iterator.remove();
             }
         }

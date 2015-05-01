@@ -2,6 +2,7 @@ package com.github.lunatrius.schematica.api;
 
 import com.github.lunatrius.core.util.vector.Vector3f;
 import net.minecraft.block.Block;
+import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
@@ -40,6 +41,10 @@ public interface ISchematic {
      * @return true if the block was successfully set.
      */
     boolean setBlock(int x, int y, int z, Block block, int metadata);
+
+    List<Entity> getEntities();
+    void addEntity(int x, int y, int z, Entity entity);
+    void removeEntity(Entity entity);
 
     /**
      * Gets the Tile Entity at the requested location. If no tile entity exists at that location, null will be returned.
