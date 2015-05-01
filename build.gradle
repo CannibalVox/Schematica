@@ -27,3 +27,12 @@ apply from: 'gradle/scripts/artifacts.gradle'
 apply from: 'gradle/scripts/signing.gradle'
 apply from: 'gradle/scripts/release.gradle'
 apply from: 'gradle/scripts/curseforge.gradle'
+
+afterEvaluate {
+    allprojects { project ->
+        if (project.plugins.hasPlugin("idea"))
+        {
+            idea { module { inheritOutputDirs = true } }
+        }
+    }
+}
