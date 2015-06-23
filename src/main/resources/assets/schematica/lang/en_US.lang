@@ -133,3 +133,9 @@ schematica.command.download.usage=/schematicaDownload <name>
 schematica.command.download.started=Started downloading %s...
 schematica.command.download.downloadSucceeded=Successfully downloaded %s.
 schematica.command.download.downloadFail=Download failed.
+
+#comands - generate
+schematica.command.generate.usage=/schematicaGenerate <name> <startX> <startY> <startZ>
+schematica.command.generate.started=Started generating %d chunks from %s.
+schematica.command.generate.succeeded=Successfully generated %s.
+schematica.command.generate.failed=There was a problem generating the schematic %s.

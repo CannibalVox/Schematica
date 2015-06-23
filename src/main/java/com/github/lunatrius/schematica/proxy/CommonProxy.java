@@ -3,6 +3,7 @@ package com.github.lunatrius.schematica.proxy;
 import com.github.lunatrius.core.util.vector.Vector3i;
 import com.github.lunatrius.core.version.VersionChecker;
 import com.github.lunatrius.schematica.api.ISchematic;
+import com.github.lunatrius.schematica.command.CommandSchematicaGenerate;
 import com.github.lunatrius.schematica.command.CommandSchematicaList;
 import com.github.lunatrius.schematica.command.CommandSchematicaRemove;
 import com.github.lunatrius.schematica.command.CommandSchematicaSave;
@@ -14,7 +15,10 @@ import com.github.lunatrius.schematica.nbt.TileEntityException;
 import com.github.lunatrius.schematica.network.PacketHandler;
 import com.github.lunatrius.schematica.reference.Reference;
 import com.github.lunatrius.schematica.world.SchematicWorld;
+import com.github.lunatrius.schematica.world.chunk.FileSaveSchematicContainer;
+import com.github.lunatrius.schematica.world.chunk.GenerateSchematicContainer;
 import com.github.lunatrius.schematica.world.chunk.SchematicContainer;
+import com.github.lunatrius.schematica.world.schematic.SchematicFormat;
 import com.github.lunatrius.schematica.world.schematic.SchematicUtil;
 import com.github.lunatrius.schematica.world.storage.Schematic;
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -23,9 +27,12 @@ import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import net.minecraft.block.Block;
+import net.minecraft.command.ICommand;
+import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
@@ -58,6 +65,7 @@ public abstract class CommonProxy {
         event.registerServerCommand(new CommandSchematicaSave());
         event.registerServerCommand(new CommandSchematicaList());
         event.registerServerCommand(new CommandSchematicaRemove());
+        event.registerServerCommand(new CommandSchematicaGenerate());
     }
 
     public void createFolders() {
@@ -86,11 +94,15 @@ public abstract class CommonProxy {
         for (int i = 0; i < chunk.entityLists.length; i++) {
             for (Object entityObj : chunk.entityLists[i]) {
                 Entity entity = (Entity)entityObj;
-                int x = MathHelper.truncateDoubleToInt(entity.posX);
-                int y = MathHelper.truncateDoubleToInt(entity.posY);
-                int z = MathHelper.truncateDoubleToInt(entity.posZ);
+                entity.posX -= minX;
+                entity.posY -= minY;
+                entity.posZ -= minZ;
 
-                schematic.addEntity(x - minX, y - minY, z - minZ, entity);
+                schematic.addEntity(entity);
+
+                entity.posX += minX;
+                entity.posY += minY;
+                entity.posZ += minZ;
             }
         }
 
@@ -129,6 +141,49 @@ public abstract class CommonProxy {
         }
     }
 
+    public boolean generateSchematic(ICommandSender sender, File directory, String filename, World world, Vector3i from) {
+        ISchematic schematic = SchematicFormat.readFromFile(directory, filename);
+        if (schematic == null) {
+            return false;
+        }
+
+        final SchematicContainer container = new GenerateSchematicContainer(schematic, sender, world, from, filename);
+        QueueTickHandler.INSTANCE.queueSchematic(container);
+        return true;
+    }
+
+    public void generateSchematicChunk(ISchematic schematic, World world, int chunkX, int chunkZ, Vector3i from) {
+        int maxX = from.x + schematic.getWidth()-1;
+        int maxZ = from.z + schematic.getLength()-1;
+        int maxY = from.y + schematic.getHeight()-1;
+        final int localMinX = from.x < (chunkX << 4) ? 0 : (from.x & 15);
+        final int localMaxX = maxX > ((chunkX << 4) + 15) ? 15 : (maxX & 15);
+        final int localMinZ = from.z < (chunkZ << 4) ? 0 : (from.z & 15);
+        final int localMaxZ = maxZ > ((chunkZ << 4) + 15) ? 15 : (maxZ & 15);
+
+        for (int x = localMinX; x <= localMaxX; x++) {
+            for (int z = localMinZ; z <= localMaxZ; z++) {
+                for (int y = from.y; y < maxY; y++) {
+                    int worldX = x | (chunkX << 4);
+                    int worldZ = z | (chunkZ << 4);
+                    Block block = schematic.getBlock(worldX - from.x, y - from.y, worldZ - from.z);
+                    int meta = schematic.getBlockMetadata(worldX - from.x, y - from.y, worldZ - from.z);
+                    world.setBlock(worldX, y, worldZ, block, meta, 3);
+
+                    TileEntity te = schematic.getTileEntity(worldX - from.x, y - from.y, worldZ - from.z);
+
+                    try {
+                        te = NBTHelper.reloadTileEntity(te, -from.x, -from.y, -from.z);
+                        world.setTileEntity(worldX, y, worldZ, te);
+                    } catch (TileEntityException ex) {
+                        Reference.logger.error(String.format("Error while trying to generate tile entity '%s'!", te), ex);
+                        world.setBlock(worldX, y, worldZ, Blocks.bedrock);
+                    }
+                }
+            }
+        }
+    }
+
     public boolean saveSchematic(EntityPlayer player, File directory, String filename, World world, Vector3i from, Vector3i to) {
         try {
             String iconName = "";
@@ -155,7 +210,7 @@ public abstract class CommonProxy {
             final short length = (short) (Math.abs(maxZ - minZ) + 1);
 
             final ISchematic schematic = new Schematic(SchematicUtil.getIconFromName(iconName), width, height, length);
-            final SchematicContainer container = new SchematicContainer(schematic, player, world, new File(directory, filename), minX, maxX, minY, maxY, minZ, maxZ);
+            final SchematicContainer container = new FileSaveSchematicContainer(schematic, player, world, new File(directory, filename), new Vector3i(minX, minY, minZ));
             QueueTickHandler.INSTANCE.queueSchematic(container);
 
             return true;

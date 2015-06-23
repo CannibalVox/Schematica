@@ -9,6 +9,7 @@ import cpw.mods.fml.common.registry.FMLControlledNamespacedRegistry;
 import cpw.mods.fml.common.registry.GameData;
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityList;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -76,6 +77,13 @@ public class SchematicAlpha extends SchematicFormat {
                     schematic.setBlock(x, y, z, BLOCK_REGISTRY.getObjectById(blockID), meta);
                 }
             }
+        }
+
+        NBTTagList entitiesList = tagCompound.getTagList(Names.NBT.ENTITIES, Constants.NBT.TAG_COMPOUND);
+
+        for (int i = 0; i < entitiesList.tagCount(); i++) {
+            schematic.addEntityData(entitiesList.getCompoundTagAt(i));
+
         }
 
         NBTTagList tileEntitiesList = tagCompound.getTagList(Names.NBT.TILE_ENTITIES, Constants.NBT.TAG_COMPOUND);
@@ -153,14 +161,8 @@ public class SchematicAlpha extends SchematicFormat {
         }
 
         NBTTagList entitiesList = new NBTTagList();
-        for (Entity entity : schematic.getEntities()) {
-            NBTTagCompound entityTag = new NBTTagCompound();
-            try {
-                if (entity.writeToNBTOptional(entityTag))
-                    entitiesList.appendTag(entityTag);
-            } catch (Exception ex) {
-                //A bad entity- just skip it
-            }
+        for (NBTTagCompound entity : schematic.getEntityData()) {
+            entitiesList.appendTag(entity);
         }
 
         for (int i = 0; i < extraBlocksNibble.length; i++) {

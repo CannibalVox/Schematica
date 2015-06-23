@@ -1,54 +1,53 @@
 package com.github.lunatrius.schematica.world.chunk;
 
+import com.github.lunatrius.core.util.vector.Vector3i;
 import com.github.lunatrius.schematica.Schematica;
 import com.github.lunatrius.schematica.api.ISchematic;
+import com.github.lunatrius.schematica.reference.Names;
 import com.github.lunatrius.schematica.reference.Reference;
+import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.world.World;
 
 import java.io.File;
 
-public class SchematicContainer {
-    public final ISchematic schematic;
-    public final EntityPlayer player;
-    public final World world;
-    public final File file;
+public abstract class SchematicContainer {
+    private final ISchematic schematic;
+    private final ICommandSender player;
+    private final World world;
 
-    public final int minX;
-    public final int maxX;
-    public final int minY;
-    public final int maxY;
-    public final int minZ;
-    public final int maxZ;
+    private final int minChunkX;
+    private final int maxChunkX;
+    private final int minChunkZ;
+    private final int maxChunkZ;
 
-    public final int minChunkX;
-    public final int maxChunkX;
-    public final int minChunkZ;
-    public final int maxChunkZ;
+    private int curChunkX;
+    private int curChunkZ;
 
-    public int curChunkX;
-    public int curChunkZ;
+    private final int chunkCount;
 
-    public final int chunkCount;
-    public int processedChunks;
+    protected int getChunkCount() {
+        return chunkCount;
+    }
 
-    public SchematicContainer(ISchematic schematic, EntityPlayer player, World world, File file, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
+    protected ISchematic getSchematic() { return schematic; }
+    protected World getWorld() { return world; }
+
+    public SchematicContainer(ISchematic schematic, ICommandSender player, World world, Vector3i startPos) {
         this.schematic = schematic;
         this.player = player;
         this.world = world;
-        this.file = file;
 
-        this.minX = minX;
-        this.maxX = maxX;
-        this.minY = minY;
-        this.maxY = maxY;
-        this.minZ = minZ;
-        this.maxZ = maxZ;
+        int minX = startPos.x;
+        int minZ = startPos.z;
+        int maxX = minX + schematic.getWidth();
+        int maxZ = minZ + schematic.getLength();
 
-        this.minChunkX = this.minX >> 4;
-        this.maxChunkX = this.maxX >> 4;
-        this.minChunkZ = this.minZ >> 4;
-        this.maxChunkZ = this.maxZ >> 4;
+        this.minChunkX = minX >> 4;
+        this.maxChunkX = maxX >> 4;
+        this.minChunkZ = minZ >> 4;
+        this.maxChunkZ = maxZ >> 4;
 
         this.curChunkX = this.minChunkX;
         this.curChunkZ = this.minChunkZ;
@@ -61,10 +60,8 @@ public class SchematicContainer {
             return;
         }
 
-        Reference.logger.debug(String.format("Copying chunk at [%d,%d] into %s", this.curChunkX, this.curChunkZ, this.file.getName()));
-        Schematica.proxy.copyChunkToSchematic(this.schematic, this.world, this.curChunkX, this.curChunkZ, this.minX, this.maxX, this.minY, this.maxY, this.minZ, this.maxZ);
+        processSingleChunk(curChunkX, curChunkZ);
 
-        this.processedChunks++;
         this.curChunkX++;
         if (this.curChunkX > this.maxChunkX) {
             this.curChunkX = this.minChunkX;
@@ -72,11 +69,20 @@ public class SchematicContainer {
         }
     }
 
+    public abstract void first();
+    protected abstract void processSingleChunk(int chunkX, int chunkZ);
+    public abstract void complete();
+
     public boolean isFirst() {
         return this.curChunkX == this.minChunkX && this.curChunkZ == this.minChunkZ;
     }
 
     public boolean hasNext() {
         return this.curChunkX <= this.maxChunkX && this.curChunkZ <= this.maxChunkZ;
+    }
+
+    protected void tellSender(String text, Object... params) {
+        final ChatComponentTranslation chatComponent = new ChatComponentTranslation(text, params);
+        player.addChatMessage(chatComponent);
     }
 }

@@ -81,6 +81,17 @@ public final class Names {
             public static final String NAME = "schematicaSave";
         }
 
+        public static final class Generate {
+            public static final class Message {
+                public static final String USAGE = "schematica.command.generate.usage";
+                public static final String STARTED = "schematica.command.generate.started";
+                public static final String SUCCESSFUL = "schematica.command.generate.succeeded";
+                public static final String FAILED = "schematica.command.generate.failed";
+            }
+
+            public static final String NAME = "schematicaGenerate";
+        }
+
         public static final class List {
             public static final class Message {
                 public static final String USAGE = "schematica.command.list.usage";

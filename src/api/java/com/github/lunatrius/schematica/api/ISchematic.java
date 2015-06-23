@@ -4,6 +4,7 @@ import com.github.lunatrius.core.util.vector.Vector3f;
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
@@ -42,9 +43,9 @@ public interface ISchematic {
      */
     boolean setBlock(int x, int y, int z, Block block, int metadata);
 
-    List<Entity> getEntities();
-    void addEntity(int x, int y, int z, Entity entity);
-    void removeEntity(Entity entity);
+    List<NBTTagCompound> getEntityData();
+    void addEntity(Entity entity);
+    void addEntityData(NBTTagCompound tag);
 
     /**
      * Gets the Tile Entity at the requested location. If no tile entity exists at that location, null will be returned.
