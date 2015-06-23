@@ -163,7 +163,7 @@ public abstract class CommonProxy {
 
         for (int x = localMinX; x <= localMaxX; x++) {
             for (int z = localMinZ; z <= localMaxZ; z++) {
-                for (int y = from.y; y < maxY; y++) {
+                for (int y = from.y; y <= maxY; y++) {
                     int worldX = x | (chunkX << 4);
                     int worldZ = z | (chunkZ << 4);
                     Block block = schematic.getBlock(worldX - from.x, y - from.y, worldZ - from.z);
@@ -172,12 +172,14 @@ public abstract class CommonProxy {
 
                     TileEntity te = schematic.getTileEntity(worldX - from.x, y - from.y, worldZ - from.z);
 
-                    try {
-                        te = NBTHelper.reloadTileEntity(te, -from.x, -from.y, -from.z);
-                        world.setTileEntity(worldX, y, worldZ, te);
-                    } catch (TileEntityException ex) {
-                        Reference.logger.error(String.format("Error while trying to generate tile entity '%s'!", te), ex);
-                        world.setBlock(worldX, y, worldZ, Blocks.bedrock);
+                    if (te != null) {
+                        try {
+                            te = NBTHelper.reloadTileEntity(te, -from.x, -from.y, -from.z);
+                            world.setTileEntity(worldX, y, worldZ, te);
+                        } catch (TileEntityException ex) {
+                            Reference.logger.error(String.format("Error while trying to generate tile entity '%s'!", te), ex);
+                            world.setBlock(worldX, y, worldZ, Blocks.bedrock);
+                        }
                     }
                 }
             }
