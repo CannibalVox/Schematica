@@ -27,7 +27,7 @@ public class CommandSchematicaGenerate extends CommandSchematicaBase {
 
     @Override
     public int getRequiredPermissionLevel() {
-        return 4;
+        return 2;
     }
 
     @Override
